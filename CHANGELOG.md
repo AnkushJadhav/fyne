@@ -3,7 +3,17 @@
 This file lists the main changes with each version of the Fyne toolkit.
 More detailed release notes can be found on the [releases page](https://github.com/fyne-io/fyne/releases). 
 
-## 2.0.3 - TBC
+## 2.0.4 - Ongoing
+
+### Fixed
+
+* Current app ID for Windows notifications
+* Fix accidental removal of windows builds during cross-compile
+* Removing an item from a container did not update layout
+* Update title bar on Windows 10 to match OS theme
+
+
+## 2.0.3 - 30 April 2021
 
 ### Fixed
 
@@ -18,8 +28,11 @@ More detailed release notes can be found on the [releases page](https://github.c
 * Install directory for windows install command contains ".exe"
 * Fix compilation for Linux Wayland apps
 * Fix tab button layout on mobile (#2117)
-* List does not move if a select widget moves with popup open
-* Speed improvements to Select drop down (#2164)
+* Options popup does not move if a SelectEntry widget moves with popup open
+* Speed improvements to Select and SelectEntry drop down
+* theme/fonts has an apache LICENSE file but it should have SIL OFL (#2193)
+* Fix build requirements for target macOS platforms (#2154)
+* ScrollEvent.Position and ScrollEvent.AbsolutePosition is 0,0 (#2199)
 
 
 ## 2.0.2 - 1 April 2021

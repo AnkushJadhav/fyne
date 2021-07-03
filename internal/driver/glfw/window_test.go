@@ -284,6 +284,30 @@ func TestWindow_HandleDragging(t *testing.T) {
 	assert.Nil(t, d1.popDragEvent())
 	assert.Nil(t, d2.popDragEvent())
 
+	// no drag event on secondary mouseDown
+	w.mouseClicked(w.viewport, glfw.MouseButton2, glfw.Press, 0)
+	w.waitForEvents()
+	assert.Nil(t, d1.popDragEvent())
+	assert.Nil(t, d2.popDragEvent())
+
+	// no drag start and no drag event with pressed secondary mouse button
+	w.mouseMoved(w.viewport, 8, 8)
+	w.waitForEvents()
+	assert.Nil(t, d1.popDragEvent())
+	assert.Nil(t, d2.popDragEvent())
+
+	// no drag end event on secondary mouseUp
+	w.mouseClicked(w.viewport, glfw.MouseButton2, glfw.Release, 0)
+	w.waitForEvents()
+	assert.Nil(t, d1.popDragEndEvent())
+	assert.Nil(t, d2.popDragEndEvent())
+
+	// no drag event in simple move
+	w.mouseMoved(w.viewport, 9, 9)
+	w.waitForEvents()
+	assert.Nil(t, d1.popDragEvent())
+	assert.Nil(t, d2.popDragEvent())
+
 	// no drag event on mouseDown
 	w.mouseClicked(w.viewport, glfw.MouseButton1, glfw.Press, 0)
 	w.waitForEvents()
@@ -532,6 +556,41 @@ func TestWindow_HoverableOnDragging(t *testing.T) {
 	w.mouseClicked(w.viewport, glfw.MouseButton1, glfw.Release, 0)
 	w.waitForEvents()
 	assert.NotNil(t, dh.popMouseOutEvent())
+}
+
+func TestWindow_DragEndWithoutTappedEvent(t *testing.T) {
+	w := createWindow("Test").(*window)
+	do := &draggableTappableObject{Rectangle: canvas.NewRectangle(color.White)}
+	do.SetMinSize(fyne.NewSize(10, 10))
+	w.SetContent(do)
+
+	repaintWindow(w)
+	require.Equal(t, fyne.NewPos(4, 4), do.Position())
+
+	w.mouseMoved(w.viewport, 9, 9)
+	w.mouseClicked(w.viewport, glfw.MouseButton1, glfw.Press, 0)
+	w.mouseMoved(w.viewport, 8, 8)
+	w.mouseClicked(w.viewport, glfw.MouseButton1, glfw.Release, 0)
+
+	w.waitForEvents()
+
+	assert.Nil(t, do.popTapEvent())
+}
+
+func TestWindow_Scrolled(t *testing.T) {
+	w := createWindow("Test").(*window)
+	o := &scrollable{Rectangle: canvas.NewRectangle(color.White)}
+	o.SetMinSize(fyne.NewSize(100, 100))
+	w.SetContent(o)
+
+	w.mousePos = fyne.NewPos(50, 60)
+	w.mouseScrolled(w.viewport, 10, 10)
+	w.waitForEvents()
+
+	if e, _ := o.popScrollEvent().(*fyne.ScrollEvent); assert.NotNil(t, e, "scroll event") {
+		assert.Equal(t, fyne.NewPos(50, 60), e.AbsolutePosition)
+		assert.Equal(t, fyne.NewPos(46, 56), e.Position)
+	}
 }
 
 func TestWindow_Tapped(t *testing.T) {
@@ -944,7 +1003,9 @@ func TestWindow_CaptureTypedShortcut(t *testing.T) {
 	w.mouseClicked(w.viewport, glfw.MouseButton1, glfw.Press, 0)
 
 	w.keyPressed(nil, glfw.KeyLeftControl, 0, glfw.Action(glfw.Press), glfw.ModControl)
+	w.keyPressed(nil, glfw.KeyLeftShift, 0, glfw.Action(glfw.Press), glfw.ModControl)
 	w.keyPressed(nil, glfw.KeyF, 0, glfw.Action(glfw.Press), glfw.ModControl)
+	w.keyPressed(nil, glfw.KeyLeftShift, 0, glfw.Action(glfw.Press), glfw.ModControl)
 	w.keyPressed(nil, glfw.KeyLeftControl, 0, glfw.Action(glfw.Release), glfw.ModControl)
 	w.keyPressed(nil, glfw.KeyF, 0, glfw.Action(glfw.Release), glfw.ModControl)
 
@@ -1251,6 +1312,12 @@ func (t *tappable) popSecondaryTapEvent() (e interface{}) {
 	return
 }
 
+type draggableTappableObject struct {
+	*canvas.Rectangle
+	draggable
+	tappable
+}
+
 var _ fyne.Focusable = (*focusable)(nil)
 var _ fyne.Disableable = (*focusable)(nil)
 
@@ -1301,6 +1368,22 @@ type typedShortcutable struct {
 
 func (ts *typedShortcutable) TypedShortcut(s fyne.Shortcut) {
 	ts.capturedShortcuts = append(ts.capturedShortcuts, s)
+}
+
+var _ fyne.Draggable = (*draggable)(nil)
+
+type scrollable struct {
+	*canvas.Rectangle
+	events []interface{}
+}
+
+func (s *scrollable) Scrolled(e *fyne.ScrollEvent) {
+	s.events = append(s.events, e)
+}
+
+func (s *scrollable) popScrollEvent() (e interface{}) {
+	e, s.events = pop(s.events)
+	return
 }
 
 //
